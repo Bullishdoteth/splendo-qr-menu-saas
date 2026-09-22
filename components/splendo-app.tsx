@@ -3,96 +3,384 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { QRCodeSVG } from 'qrcode.react'
-import { Bell, ChevronDown, Clock3, Coffee, ConciergeBell, Copy, ExternalLink, LayoutDashboard, Minus, Plus, QrCode, Search, ShoppingBag, Star, Utensils, X } from 'lucide-react'
-
-const menuItems = [
-  { id: 1, name: 'Jollof & grilled chicken', description: 'Smoky tomato rice, charred chicken, fried plantain', price: 24, category: 'Popular', image: '/images/jollof-chicken.png', time: '20–25 min', rating: '4.9' },
-  { id: 2, name: 'Avocado toast', description: 'Sourdough, smashed avocado, poached egg, herbs', price: 16, category: 'Breakfast', image: '/images/avocado-toast.png', time: '10–15 min', rating: '4.8' },
-  { id: 3, name: 'Coconut cake', description: 'Vanilla sponge, coconut cream, toasted coconut', price: 12, category: 'Desserts', image: '/images/coconut-cake.png', time: '5–10 min', rating: '4.7' },
-]
-
-const orders = [
-  { id: '#SP-1048', room: 'Room 208', guest: 'Amaka Okafor', items: '2 items · Jollof & grilled chicken', total: '$40.00', status: 'Preparing', time: '2 min ago' },
-  { id: '#SP-1047', room: 'Room 314', guest: 'Daniel Mensah', items: '1 item · Avocado toast', total: '$16.00', status: 'Ready for delivery', time: '8 min ago' },
-  { id: '#SP-1046', room: 'Room 119', guest: 'Sofia Bennett', items: '3 items · Coconut cake + 2 drinks', total: '$28.00', status: 'Delivered', time: '14 min ago' },
-]
+import { useSaaS } from '@/lib/saas-context'
+import { KitchenDesk } from './kitchen-desk'
+import { MenuManager } from './menu-manager'
+import { QRStudio } from './qr-studio'
+import { SuperAdmin } from './super-admin'
+import { OrderTracker } from './order-tracker'
+import { Order } from '@/lib/types'
+import {
+  Bell, ChevronDown, Clock3, ConciergeBell, Copy, ExternalLink,
+  Minus, Plus, QrCode, Search, ShieldCheck, ShoppingBag, Star, Utensils, X
+} from 'lucide-react'
 
 export default function SplendoApp() {
-  const [view, setView] = useState<'guest' | 'dashboard'>('guest')
+  const { hotels, activeHotel, setActiveHotelId, addOrder, orders } = useSaaS()
+
+  // Navigation views: guest | kitchen | menu | qr | super-admin
+  const [view, setView] = useState<'guest' | 'kitchen' | 'menu' | 'qr' | 'super-admin'>('guest')
   const [category, setCategory] = useState('Popular')
-  const [cart, setCart] = useState<Record<number, number>>({})
+  const [cart, setCart] = useState<Record<string, number>>({})
   const [showCart, setShowCart] = useState(false)
-  const [showQr, setShowQr] = useState(false)
-  const [roomNumber] = useState(() => typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('room') || '208' : '208')
-  const menuUrl = typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1') ? `${window.location.origin}/?room=${roomNumber}` : `https://splendo-qr-menu-saas.vercel.app/?room=${roomNumber}`
+  const [showQrModal, setShowQrModal] = useState(false)
 
-  const addItem = (id: number) => setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }))
-  const removeItem = (id: number) => setCart((current) => ({ ...current, [id]: Math.max((current[id] || 0) - 1, 0) }))
-  const cartCount = Object.values(cart).reduce((sum, value) => sum + value, 0)
-  const cartTotal = menuItems.reduce((sum, item) => sum + item.price * (cart[item.id] || 0), 0)
-  const visibleItems = category === 'Popular' ? menuItems : menuItems.filter((item) => item.category === category)
+  // Tracking Modal State
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null)
 
-  return (
-    <main className="min-h-screen bg-[#f5f5f0] text-[#17241f]">
-      <header className="sticky top-0 z-30 border-b border-[#dfe4dc] bg-[#f5f5f0]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1320px] items-center justify-between px-5 py-4 lg:px-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#173f35] text-[#f2e9d8]"><span className="font-serif text-xl">S</span></div>
-            <div><p className="font-serif text-lg leading-none">Splendo</p><p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.24em] text-[#6e7b72]">Hotel & Suites</p></div>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#dfe4dc] bg-white/60 p-1 text-xs font-medium">
-            <button onClick={() => setView('guest')} className={`rounded-full px-4 py-2 transition ${view === 'guest' ? 'bg-[#173f35] text-white' : 'text-[#6d786f]'}`}>Guest menu</button>
-            <button onClick={() => setView('dashboard')} className={`rounded-full px-4 py-2 transition ${view === 'dashboard' ? 'bg-[#173f35] text-white' : 'text-[#6d786f]'}`}>Hotel access</button>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-[#6d786f]"><button onClick={() => setShowQr(true)} className="flex items-center gap-2 rounded-full border border-[#dfe4dc] bg-white/70 px-3 py-2 transition hover:border-[#9eb0a4]" aria-label="Show guest QR code"><QrCode size={15} /> Guest QR</button><span className="h-5 w-px bg-[#dfe4dc]" /><span>EN <ChevronDown size={13} className="inline" /></span></div>
-        </div>
-      </header>
-
-      {showQr && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102a23]/35 p-4" role="dialog" aria-modal="true" aria-label="Guest menu QR code"><div className="w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-2xl"><div className="flex items-center justify-between"><div className="text-left"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Guest access</p><h2 className="mt-1 font-serif text-2xl text-[#173f35]">Scan to view menu</h2></div><button onClick={() => setShowQr(false)} aria-label="Close QR code" className="rounded-full p-2 text-[#718078] hover:bg-[#edf1eb]"><X /></button></div><div className="mx-auto mt-6 flex size-56 items-center justify-center rounded-2xl border border-[#e5eee4] bg-white p-3"><QRCodeSVG value={menuUrl} size={190} bgColor="#ffffff" fgColor="#173f35" level="H" includeMargin /></div><p className="mt-5 text-sm leading-6 text-[#718078]">Guests can scan this code with their phone camera to open the Splendo room service menu.</p><div className="mt-5 flex gap-2"><button onClick={() => navigator.clipboard?.writeText(menuUrl)} className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[#dfe4dc] px-4 py-3 text-sm font-semibold text-[#173f35]"><Copy size={15} /> Copy link</button><a href={menuUrl} target="_blank" rel="noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#173f35] px-4 py-3 text-sm font-semibold text-white"><ExternalLink size={15} /> Open menu</a></div><p className="mt-4 break-all text-[11px] text-[#9aa59d]">{menuUrl}</p></div></div>}
-
-      {view === 'guest' ? <section className="mx-auto max-w-[1320px] px-5 pb-20 lg:px-10">
-        <div className="grid items-center gap-10 py-12 lg:grid-cols-[1fr_1.2fr] lg:py-16">
-          <div><p className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]"><span className="h-px w-8 bg-[#9b714f]" /> Welcome to Splendo</p><h1 className="max-w-xl font-serif text-5xl leading-[0.98] tracking-[-0.04em] text-[#173f35] sm:text-6xl">Good food,<br /><em className="font-normal text-[#9b714f]">beautifully</em> served.</h1><p className="mt-6 max-w-md text-base leading-7 text-[#6d786f]">Take a moment to explore our all-day menu. Your order will be delivered fresh to your room.</p><div className="mt-8 flex items-center gap-4 text-sm text-[#6d786f]"><span className="flex items-center gap-2"><Clock3 size={16} className="text-[#9b714f]" /> 8:00 AM – 10:00 PM</span><span className="flex items-center gap-2"><ConciergeBell size={16} className="text-[#9b714f]" /> Room service</span></div></div>
-          <div className="relative overflow-hidden rounded-[28px] bg-[#dce5d9] p-8 sm:p-10"><div className="absolute -right-10 -top-10 h-40 w-40 rounded-full border border-[#b9cdbd]" /><div className="absolute -bottom-20 -left-12 h-48 w-48 rounded-full border border-[#b9cdbd]" /><div className="relative flex min-h-[250px] flex-col justify-between"><div className="flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#547164]">You are ordering from</p><p className="mt-2 font-serif text-3xl text-[#173f35]">The Garden Terrace</p></div><div className="rounded-full bg-white/70 p-3 text-[#173f35]"><Utensils size={20} /></div></div><div className="mt-10 flex items-end justify-between"><div><p className="text-sm text-[#547164]">Delivery to</p><p className="mt-1 text-lg font-semibold text-[#173f35]">Room {roomNumber} <span className="mx-1 text-[#92a298]">·</span> Amaka</p></div><button className="rounded-full bg-[#173f35] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#275b4d]">Change room</button></div></div></div>
-        </div>
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Curated for you</p><h2 className="mt-2 font-serif text-3xl text-[#173f35]">What are you in the mood for?</h2></div><div className="flex items-center gap-2 rounded-full border border-[#dfe4dc] bg-white px-4 py-2 text-sm text-[#6d786f]"><Search size={16} /> <span>Search menu</span></div></div>
-        <div className="mb-8 flex gap-2 overflow-x-auto pb-1">{['Popular', 'Breakfast', 'Mains', 'Desserts', 'Drinks'].map((item) => <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition ${category === item ? 'bg-[#173f35] text-white' : 'border border-[#dfe4dc] bg-white text-[#6d786f] hover:border-[#9eb0a4]'}`}>{item}</button>)}</div>
-        <div className="grid gap-5 md:grid-cols-3">{visibleItems.map((item) => <article key={item.id} className="group overflow-hidden rounded-2xl border border-[#e1e5df] bg-white"><div className="relative h-52 overflow-hidden"><Image src={item.image} alt={item.name} fill className="object-cover transition duration-500 group-hover:scale-105" /><div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#173f35]"><Star size={12} className="mr-1 inline fill-[#c99562] text-[#c99562]" /> {item.rating}</div></div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-serif text-xl text-[#173f35]">{item.name}</h3><p className="mt-2 text-sm leading-5 text-[#7a857c]">{item.description}</p></div><p className="text-lg font-bold text-[#9b714f]">${item.price}</p></div><div className="mt-5 flex items-center justify-between border-t border-[#edf0eb] pt-4"><span className="text-xs text-[#8b958d]"><Clock3 size={13} className="mr-1 inline" /> {item.time}</span><button onClick={() => addItem(item.id)} className="flex items-center gap-1.5 rounded-full bg-[#e5eee4] px-4 py-2 text-sm font-bold text-[#173f35] transition hover:bg-[#cfe0d0]"><Plus size={15} /> Add</button></div></div></article>)}</div>
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl bg-[#ede9df] px-6 py-5 text-center sm:flex-row sm:text-left"><div className="flex items-center gap-3"><div className="rounded-full bg-[#d8d1c0] p-3 text-[#9b714f]"><Bell size={18} /></div><div><p className="font-semibold text-[#173f35]">Need something else?</p><p className="text-sm text-[#7a857c]">Our concierge team is happy to help.</p></div></div><button className="rounded-full border border-[#bdb7aa] px-5 py-2.5 text-sm font-semibold text-[#173f35]">Call concierge</button></div>
-        {cartCount > 0 && <button onClick={() => setShowCart(true)} className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full bg-[#173f35] px-6 py-4 text-white shadow-xl"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c99562] text-xs font-bold">{cartCount}</span><span className="font-semibold">View your order</span><span className="font-bold">${cartTotal}.00</span></button>}
-        {showCart && <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#102a23]/30 p-4 sm:items-center"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-center justify-between"><h2 className="font-serif text-2xl text-[#173f35]">Your order</h2><button onClick={() => setShowCart(false)} aria-label="Close order"><X /></button></div><div className="mt-5 space-y-4">{menuItems.filter((item) => cart[item.id]).map((item) => <div key={item.id} className="flex items-center justify-between"><div><p className="font-semibold text-[#173f35]">{item.name}</p><p className="text-sm text-[#8a948c]">${item.price} each</p></div><div className="flex items-center gap-3"><button onClick={() => removeItem(item.id)} className="rounded-full bg-[#edf1eb] p-1.5"><Minus size={14} /></button><span className="w-4 text-center text-sm font-semibold">{cart[item.id]}</span><button onClick={() => addItem(item.id)} className="rounded-full bg-[#edf1eb] p-1.5"><Plus size={14} /></button></div></div>)}</div><div className="mt-6 border-t border-[#e6e9e4] pt-5"><div className="flex justify-between text-lg font-bold text-[#173f35]"><span>Total</span><span>${cartTotal}.00</span></div><button onClick={() => setShowCart(false)} className="mt-5 w-full rounded-full bg-[#173f35] py-3.5 font-semibold text-white">Place order</button></div></div></div>}
-      </section> : <Dashboard />}
-    </main>
-  )
-}
-
-function Dashboard() {
-  const [active, setActive] = useState('Orders')
-  return active === 'Rooms' ? <RoomsManager /> : <section className="mx-auto flex max-w-[1420px] gap-0 px-5 pb-16 pt-8 lg:px-10"><aside className="hidden w-56 shrink-0 border-r border-[#dfe4dc] pr-8 md:block"><p className="mb-8 text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Hotel access</p><nav className="space-y-2">{['Overview', 'Orders', 'Menu', 'Rooms'].map((item) => <button key={item} onClick={() => setActive(item)} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold ${active === item ? 'bg-[#173f35] text-white' : 'text-[#718078] hover:bg-white'}`}>{item === 'Orders' ? <ShoppingBag size={17} /> : item === 'Overview' ? <LayoutDashboard size={17} /> : item === 'Menu' ? <Utensils size={17} /> : <ConciergeBell size={17} />}{item}</button>)}</nav><div className="mt-20 rounded-2xl bg-[#e5eee4] p-4"><QrCode size={22} className="text-[#173f35]" /><p className="mt-4 text-sm font-semibold text-[#173f35]">Guest QR codes</p><p className="mt-1 text-xs leading-5 text-[#718078]">Print and place on room cards or tables.</p><button onClick={() => setActive('Rooms')} className="mt-4 text-xs font-bold text-[#9b714f]">Manage codes →</button></div></aside><div className="w-full md:pl-10"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm text-[#8a948c]">Tuesday, September 22, 2026</p><h1 className="mt-2 font-serif text-4xl text-[#173f35]">Good morning, admin.</h1><p className="mt-2 text-sm text-[#718078]">Here is what is happening at The Garden Terrace today.</p></div><button className="flex items-center gap-2 rounded-full bg-[#173f35] px-5 py-3 text-sm font-semibold text-white"><Plus size={16} /> Add menu item</button></div><div className="mt-10 grid gap-4 sm:grid-cols-3"><Stat label="Today's orders" value="24" change="+12.5%" /><Stat label="In progress" value="07" change="3 ready" /><Stat label="Today's revenue" value="$648" change="+8.2%" /></div><div className="mt-10 rounded-2xl border border-[#e1e5df] bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edf0eb] p-5"><div><h2 className="font-serif text-2xl text-[#173f35]">Recent orders</h2><p className="mt-1 text-sm text-[#8a948c]">Manage guest orders as they come in.</p></div><button className="rounded-full border border-[#dfe4dc] px-4 py-2 text-sm font-semibold text-[#526259]">View all orders</button></div><div className="divide-y divide-[#edf0eb]">{orders.map((order) => <div key={order.id} className="flex flex-wrap items-center justify-between gap-4 p-5"><div className="flex min-w-[230px] items-center gap-4"><div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e5eee4] text-xs font-bold text-[#173f35]">{order.room.replace('Room ', '')}</div><div><p className="font-semibold text-[#173f35]">{order.id} <span className="ml-2 text-xs font-normal text-[#9aa39c]">{order.time}</span></p><p className="mt-1 text-sm text-[#758078]">{order.guest} · {order.items}</p></div></div><p className="font-bold text-[#173f35]">{order.total}</p><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${order.status === 'Preparing' ? 'bg-[#fff0d7] text-[#a06b24]' : order.status === 'Ready for delivery' ? 'bg-[#e4edf6] text-[#456b92]' : 'bg-[#e5eee4] text-[#43715a]'}`}>{order.status}</span><button className="rounded-full border border-[#dfe4dc] px-4 py-2 text-xs font-semibold text-[#526259]">Update</button></div>)}</div></div></div></section>
-}
-
-const roomCodes = [
-  { room: 'Room 101', guest: 'Available', floor: '1st floor', status: 'Ready' },
-  { room: 'Room 119', guest: 'Sofia Bennett', floor: '1st floor', status: 'Active' },
-  { room: 'Room 208', guest: 'Amaka Okafor', floor: '2nd floor', status: 'Active' },
-  { room: 'Room 314', guest: 'Daniel Mensah', floor: '3rd floor', status: 'Active' },
-  { room: 'Room 402', guest: 'Available', floor: '4th floor', status: 'Ready' },
-  { room: 'Suite 501', guest: 'Available', floor: '5th floor', status: 'Ready' },
-]
-
-function RoomsManager() {
-  const [selectedRoom, setSelectedRoom] = useState(roomCodes[2])
-  const [origin, setOrigin] = useState('https://splendo-qr-menu-saas.vercel.app')
-
+  // Detect room query parameter
+  const [roomNumber, setRoomNumber] = useState('208')
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-      setOrigin(window.location.origin)
+    if (typeof window !== 'undefined') {
+      const param = new URLSearchParams(window.location.search).get('room')
+      if (param) setRoomNumber(param)
     }
   }, [])
 
-  const selectedUrl = `${origin}/?room=${selectedRoom.room.replace(/\D/g, '')}`
+  const menuItems = activeHotel.menuItems
 
-  return <section className="mx-auto max-w-[1420px] px-5 pb-16 pt-8 lg:px-10"><div className="flex flex-wrap items-start justify-between gap-5"><div><p className="text-sm text-[#8a948c]">Hotel access · Rooms</p><h1 className="mt-2 font-serif text-4xl text-[#173f35]">Room QR codes</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[#718078]">Generate a unique scan-to-order link for every room. Print the code on room cards so orders arrive with the correct room number.</p></div><button onClick={() => window.print()} className="flex items-center gap-2 rounded-full bg-[#173f35] px-5 py-3 text-sm font-semibold text-white"><QrCode size={16} /> Print selected code</button></div><div className="mt-9 grid gap-6 lg:grid-cols-[1.15fr_.85fr]"><div className="rounded-2xl border border-[#e1e5df] bg-white p-5"><div className="flex items-center justify-between"><div><h2 className="font-serif text-2xl text-[#173f35]">All rooms</h2><p className="mt-1 text-sm text-[#8a948c]">{roomCodes.length} unique guest access codes</p></div><span className="rounded-full bg-[#e5eee4] px-3 py-1 text-xs font-bold text-[#4d7b61]">Live links</span></div><div className="mt-5 flex flex-col gap-2">{roomCodes.map((room) => <button key={room.room} onClick={() => setSelectedRoom(room)} className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${selectedRoom.room === room.room ? 'border-[#9eb0a4] bg-[#f2f6f0]' : 'border-[#edf0eb] hover:bg-[#fafbf8]'}`}><div><p className="font-semibold text-[#173f35]">{room.room}</p><p className="mt-1 text-xs text-[#8a948c]">{room.guest} · {room.floor}</p></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${room.status === 'Active' ? 'bg-[#e5eee4] text-[#4d7b61]' : 'bg-[#f1ede4] text-[#9b714f]'}`}>{room.status}</span></button>)}</div></div><div className="rounded-2xl bg-[#e5eee4] p-7 text-center"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Selected code</p><h2 className="mt-2 font-serif text-3xl text-[#173f35]">{selectedRoom.room}</h2><p className="mt-1 text-sm text-[#718078]">{selectedRoom.guest === 'Available' ? 'Ready for your next guest' : `Currently assigned to ${selectedRoom.guest}`}</p><div className="mx-auto mt-6 flex size-60 items-center justify-center rounded-2xl bg-white p-3 shadow-sm"><QRCodeSVG value={selectedUrl} size={205} bgColor="#ffffff" fgColor="#173f35" level="H" includeMargin /></div><p className="mt-4 break-all text-[11px] text-[#7d8980]">{selectedUrl}</p><div className="mt-5 flex gap-2"><button onClick={() => navigator.clipboard?.writeText(selectedUrl)} className="flex-1 rounded-full border border-[#b9cdbd] bg-white px-4 py-3 text-sm font-semibold text-[#173f35]">Copy link</button><a href={selectedUrl} target="_blank" rel="noreferrer" className="flex-1 rounded-full bg-[#173f35] px-4 py-3 text-sm font-semibold text-white">Test menu</a></div></div></div></section>
+  const addItem = (id: string) => setCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }))
+  const removeItem = (id: string) => setCart((prev) => ({ ...prev, [id]: Math.max((prev[id] || 0) - 1, 0) }))
+
+  const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0)
+  const cartTotal = menuItems.reduce((sum, item) => sum + item.price * (cart[item.id] || 0), 0)
+
+  const visibleItems = category === 'Popular'
+    ? menuItems
+    : menuItems.filter((item) => item.category === category)
+
+  const handlePlaceOrder = () => {
+    const orderItems = menuItems
+      .filter((item) => cart[item.id] > 0)
+      .map((item) => ({ menuItem: item, quantity: cart[item.id] }))
+
+    if (orderItems.length === 0) return
+
+    const created = addOrder({
+      hotelId: activeHotel.id,
+      roomNumber,
+      guestName: 'Amaka Okafor',
+      items: orderItems,
+      totalAmount: cartTotal,
+      specialInstructions: 'Please leave outside room door'
+    })
+
+    setCart({})
+    setShowCart(false)
+    setActiveTrackingOrder(created)
+  }
+
+  const liveBaseUrl = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
+    ? window.location.origin
+    : 'https://splendo-qr-menu-saas.vercel.app'
+
+  const menuQrUrl = `${liveBaseUrl}/?room=${roomNumber}`
+
+  return (
+    <main className="min-h-screen bg-[#f5f5f0] text-[#17241f]">
+      {/* SaaS Global Header */}
+      <header className="sticky top-0 z-30 border-b border-[#dfe4dc] bg-[#f5f5f0]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1420px] flex-wrap items-center justify-between gap-3 px-5 py-3 lg:px-10">
+          {/* Logo & Hotel Tenant Switcher */}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full text-xl font-serif text-white font-bold shadow-sm"
+              style={{ backgroundColor: activeHotel.primaryColor || '#173f35' }}
+            >
+              {activeHotel.logoText}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-serif text-lg font-bold text-[#173f35] leading-none">{activeHotel.name}</p>
+                <select
+                  value={activeHotel.id}
+                  onChange={(e) => setActiveHotelId(e.target.value)}
+                  className="rounded-full border border-[#dfe4dc] bg-white px-2 py-0.5 text-[11px] font-bold text-[#173f35] focus:outline-none cursor-pointer"
+                >
+                  {hotels.map((h) => (
+                    <option key={h.id} value={h.id}>Switch: {h.name}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#9b714f]">{activeHotel.tagline}</p>
+            </div>
+          </div>
+
+          {/* Role Navigation Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white/70 p-1 text-xs font-semibold">
+            <button
+              onClick={() => setView('guest')}
+              className={`rounded-full px-3.5 py-1.5 transition ${view === 'guest' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+            >
+              Guest View
+            </button>
+            <button
+              onClick={() => setView('kitchen')}
+              className={`rounded-full px-3.5 py-1.5 transition ${view === 'kitchen' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+            >
+              Kitchen Desk
+            </button>
+            <button
+              onClick={() => setView('menu')}
+              className={`rounded-full px-3.5 py-1.5 transition ${view === 'menu' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+            >
+              Menu Studio
+            </button>
+            <button
+              onClick={() => setView('qr')}
+              className={`rounded-full px-3.5 py-1.5 transition ${view === 'qr' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+            >
+              QR Codes
+            </button>
+            <button
+              onClick={() => setView('super-admin')}
+              className={`rounded-full px-3 py-1.5 flex items-center gap-1 transition ${view === 'super-admin' ? 'bg-[#9b714f] text-white shadow-sm' : 'text-[#9b714f] hover:bg-[#9b714f]/10'}`}
+            >
+              <ShieldCheck size={14} /> Platform SaaS
+            </button>
+          </div>
+
+          {/* QR Code Action Button */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#6d786f]">
+            <button
+              onClick={() => setShowQrModal(true)}
+              className="flex items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white px-3 py-1.5 hover:border-[#9eb0a4] transition"
+            >
+              <QrCode size={14} /> Room QR
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* QR Code Quick Modal */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102a23]/35 p-4" role="dialog">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Guest QR Code</p>
+                <h2 className="mt-1 font-serif text-2xl text-[#173f35]">Room {roomNumber} Scan</h2>
+              </div>
+              <button onClick={() => setShowQrModal(false)} className="rounded-full p-2 text-[#718078] hover:bg-[#edf1eb]">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mx-auto mt-6 flex size-56 items-center justify-center rounded-2xl border border-[#e5eee4] bg-white p-3">
+              <QRCodeSVG value={menuQrUrl} size={190} bgColor="#ffffff" fgColor={activeHotel.primaryColor || '#173f35'} level="H" includeMargin />
+            </div>
+
+            <p className="mt-4 break-all font-mono text-[11px] text-[#9aa59d]">{menuQrUrl}</p>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => navigator.clipboard?.writeText(menuQrUrl)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[#dfe4dc] px-4 py-3 text-xs font-semibold text-[#173f35]"
+              >
+                <Copy size={14} /> Copy Link
+              </button>
+              <a
+                href={menuQrUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#173f35] px-4 py-3 text-xs font-semibold text-white"
+              >
+                <ExternalLink size={14} /> Open Menu
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main View Router */}
+      {view === 'guest' && (
+        <section className="mx-auto max-w-[1320px] px-5 pb-20 lg:px-10">
+          <div className="grid items-center gap-10 py-10 lg:grid-cols-[1fr_1.2fr] lg:py-14">
+            <div>
+              <p className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">
+                <span className="h-px w-8 bg-[#9b714f]" /> Welcome to {activeHotel.name}
+              </p>
+              <h1 className="max-w-xl font-serif text-5xl leading-[0.98] tracking-[-0.04em] text-[#173f35] sm:text-6xl">
+                Good food,<br />
+                <em className="font-normal text-[#9b714f]">beautifully</em> served.
+              </h1>
+              <p className="mt-6 max-w-md text-base leading-7 text-[#6d786f]">
+                Explore our curated room service menu. Your order will be prepared by our chefs and delivered fresh to your room.
+              </p>
+            </div>
+
+            {/* Room Location Card */}
+            <div
+              className="relative overflow-hidden rounded-[28px] p-8 sm:p-10 text-white shadow-xl"
+              style={{ backgroundColor: activeHotel.primaryColor || '#173f35' }}
+            >
+              <div className="relative flex min-h-[220px] flex-col justify-between">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-80">Room Service Delivery</p>
+                    <p className="mt-2 font-serif text-3xl">{activeHotel.name}</p>
+                  </div>
+                  <div className="rounded-full bg-white/20 p-3"><Utensils size={20} /></div>
+                </div>
+                <div className="mt-8 flex items-end justify-between border-t border-white/20 pt-4">
+                  <div>
+                    <p className="text-xs opacity-75">Delivering to</p>
+                    <p className="mt-1 text-xl font-semibold">Room {roomNumber} <span className="opacity-60">·</span> Guest</p>
+                  </div>
+                  <span className="rounded-full bg-white/20 px-4 py-2 text-xs font-bold">{activeHotel.currency} Currency</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Categories Selector */}
+          <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Curated Selection</p>
+              <h2 className="mt-1 font-serif text-3xl text-[#173f35]">What are you in the mood for?</h2>
+            </div>
+          </div>
+
+          <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
+            {['Popular', 'Breakfast', 'Mains', 'Desserts', 'Drinks'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`whitespace-nowrap rounded-full px-5 py-2.5 text-xs font-bold transition ${
+                  category === cat
+                    ? 'bg-[#173f35] text-white shadow-sm'
+                    : 'border border-[#dfe4dc] bg-white text-[#6d786f] hover:border-[#9eb0a4]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Items Grid */}
+          <div className="grid gap-5 md:grid-cols-3">
+            {visibleItems.map((item) => (
+              <article key={item.id} className="group overflow-hidden rounded-2xl border border-[#e1e5df] bg-white shadow-sm">
+                <div className="relative h-52 overflow-hidden bg-[#e5eee4]">
+                  <Image src={item.image} alt={item.name} fill className="object-cover transition duration-500 group-hover:scale-105" />
+                  <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#173f35]">
+                    <Star size={12} className="mr-1 inline fill-[#c99562] text-[#c99562]" /> {item.rating}
+                  </div>
+                  {!item.available && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">
+                      Out of Stock
+                    </div>
+                  )}
+                </div>
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-serif text-xl text-[#173f35]">{item.name}</h3>
+                      <p className="mt-2 text-xs leading-5 text-[#7a857c]">{item.description}</p>
+                    </div>
+                    <p className="text-lg font-bold font-mono text-[#9b714f]">
+                      {activeHotel.currencySymbol}{item.price}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between border-t border-[#edf0eb] pt-4">
+                    <span className="text-xs text-[#8b958d]">
+                      <Clock3 size={13} className="mr-1 inline" /> {item.time}
+                    </span>
+                    <button
+                      disabled={!item.available}
+                      onClick={() => addItem(item.id)}
+                      className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
+                        item.available
+                          ? 'bg-[#e5eee4] text-[#173f35] hover:bg-[#cfe0d0]'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Plus size={14} /> Add to Order
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Floating Cart Button */}
+          {cartCount > 0 && (
+            <button
+              onClick={() => setShowCart(true)}
+              className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full bg-[#173f35] px-6 py-4 text-white shadow-2xl transition hover:bg-[#235749]"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c99562] text-xs font-bold">
+                {cartCount}
+              </span>
+              <span className="font-semibold text-sm">View Room Service Order</span>
+              <span className="font-mono font-bold text-sm">{activeHotel.currencySymbol}{cartTotal}</span>
+            </button>
+          )}
+
+          {/* Cart Drawer */}
+          {showCart && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#102a23]/30 p-4 sm:items-center">
+              <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-[#e6e9e4] pb-4">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b714f]">Room {roomNumber}</span>
+                    <h2 className="font-serif text-2xl text-[#173f35]">Your Order</h2>
+                  </div>
+                  <button onClick={() => setShowCart(false)} aria-label="Close order"><X size={18} /></button>
+                </div>
+
+                <div className="mt-5 space-y-4 max-h-[300px] overflow-y-auto">
+                  {menuItems.filter((item) => cart[item.id]).map((item) => (
+                    <div key={item.id} className="flex items-center justify-between border-b border-[#edf0eb] pb-3">
+                      <div>
+                        <p className="font-semibold text-sm text-[#173f35]">{item.name}</p>
+                        <p className="text-xs text-[#8a948c]">{activeHotel.currencySymbol}{item.price} each</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => removeItem(item.id)} className="rounded-full bg-[#edf1eb] p-1.5 text-[#173f35]">
+                          <Minus size={14} />
+                        </button>
+                        <span className="w-4 text-center text-xs font-bold">{cart[item.id]}</span>
+                        <button onClick={() => addItem(item.id)} className="rounded-full bg-[#edf1eb] p-1.5 text-[#173f35]">
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 border-t border-[#e6e9e4] pt-4">
+                  <div className="flex justify-between text-base font-bold text-[#173f35]">
+                    <span>Total Amount:</span>
+                    <span className="font-mono text-lg">{activeHotel.currencySymbol}{cartTotal}</span>
+                  </div>
+                  <button
+                    onClick={handlePlaceOrder}
+                    className="mt-5 w-full rounded-full bg-[#173f35] py-3.5 text-xs font-bold text-white hover:bg-[#235749]"
+                  >
+                    Confirm & Send to Kitchen
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {view === 'kitchen' && <KitchenDesk />}
+      {view === 'menu' && <MenuManager />}
+      {view === 'qr' && <QRStudio />}
+      {view === 'super-admin' && <SuperAdmin />}
+
+      {/* Real-time Order Tracking Modal */}
+      {activeTrackingOrder && (
+        <OrderTracker
+          order={activeTrackingOrder}
+          onClose={() => setActiveTrackingOrder(null)}
+        />
+      )}
+    </main>
+  )
 }
-
-function Stat({ label, value, change }: { label: string; value: string; change: string }) { return <div className="rounded-2xl border border-[#e1e5df] bg-white p-5"><p className="text-sm text-[#7d8980]">{label}</p><div className="mt-3 flex items-end justify-between"><p className="font-serif text-4xl text-[#173f35]">{value}</p><span className="rounded-full bg-[#e5eee4] px-2.5 py-1 text-xs font-bold text-[#4d7b61]">{change}</span></div></div> }
