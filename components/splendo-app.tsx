@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 
 export default function SplendoApp() {
-  const { hotels, activeHotel, setActiveHotelId, addOrder, orders } = useSaaS()
+  const { hotels, activeHotel, setActiveHotelId, addOrder } = useSaaS()
 
   // Navigation views: guest | kitchen | menu | qr | super-admin
   const [view, setView] = useState<'guest' | 'kitchen' | 'menu' | 'qr' | 'super-admin'>('guest')
@@ -59,10 +59,10 @@ export default function SplendoApp() {
     const created = addOrder({
       hotelId: activeHotel.id,
       roomNumber,
-      guestName: 'Amaka Okafor',
+      guestName: 'Guest',
       items: orderItems,
       totalAmount: cartTotal,
-      specialInstructions: 'Please leave outside room door'
+      specialInstructions: 'Please deliver to room'
     })
 
     setCart({})
@@ -78,80 +78,82 @@ export default function SplendoApp() {
 
   return (
     <main className="min-h-screen bg-[#f5f5f0] text-[#17241f]">
-      {/* SaaS Global Header */}
-      <header className="sticky top-0 z-30 border-b border-[#dfe4dc] bg-[#f5f5f0]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1420px] flex-wrap items-center justify-between gap-3 px-5 py-3 lg:px-10">
-          {/* Logo & Hotel Tenant Switcher */}
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-full text-xl font-serif text-white font-bold shadow-sm"
-              style={{ backgroundColor: activeHotel.primaryColor || '#173f35' }}
-            >
-              {activeHotel.logoText}
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-serif text-lg font-bold text-[#173f35] leading-none">{activeHotel.name}</p>
-                <select
-                  value={activeHotel.id}
-                  onChange={(e) => setActiveHotelId(e.target.value)}
-                  className="rounded-full border border-[#dfe4dc] bg-white px-2 py-0.5 text-[11px] font-bold text-[#173f35] focus:outline-none cursor-pointer"
-                >
-                  {hotels.map((h) => (
-                    <option key={h.id} value={h.id}>Switch: {h.name}</option>
-                  ))}
-                </select>
+      {/* SaaS Global Header — ONLY visible in Staff/Admin mode */}
+      {view !== 'guest' && (
+        <header className="sticky top-0 z-30 border-b border-[#dfe4dc] bg-[#f5f5f0]/95 backdrop-blur">
+          <div className="mx-auto flex max-w-[1420px] flex-wrap items-center justify-between gap-3 px-5 py-3 lg:px-10">
+            {/* Logo & Hotel Tenant Switcher */}
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-full text-xl font-serif text-white font-bold shadow-sm"
+                style={{ backgroundColor: activeHotel.primaryColor || '#173f35' }}
+              >
+                {activeHotel.logoText}
               </div>
-              <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#9b714f]">{activeHotel.tagline}</p>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-serif text-lg font-bold text-[#173f35] leading-none">{activeHotel.name}</p>
+                  <select
+                    value={activeHotel.id}
+                    onChange={(e) => setActiveHotelId(e.target.value)}
+                    className="rounded-full border border-[#dfe4dc] bg-white px-2 py-0.5 text-[11px] font-bold text-[#173f35] focus:outline-none cursor-pointer"
+                  >
+                    {hotels.map((h) => (
+                      <option key={h.id} value={h.id}>Switch: {h.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#9b714f]">Staff Admin Workspace</p>
+              </div>
+            </div>
+
+            {/* Role Navigation Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white/70 p-1 text-xs font-semibold">
+              <button
+                onClick={() => setView('guest')}
+                className={`rounded-full px-3.5 py-1.5 transition ${view === 'guest' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+              >
+                Guest View ➔
+              </button>
+              <button
+                onClick={() => setView('kitchen')}
+                className={`rounded-full px-3.5 py-1.5 transition ${view === 'kitchen' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+              >
+                Kitchen Desk
+              </button>
+              <button
+                onClick={() => setView('menu')}
+                className={`rounded-full px-3.5 py-1.5 transition ${view === 'menu' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+              >
+                Menu Studio
+              </button>
+              <button
+                onClick={() => setView('qr')}
+                className={`rounded-full px-3.5 py-1.5 transition ${view === 'qr' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+              >
+                QR Codes
+              </button>
+              <button
+                onClick={() => setView('super-admin')}
+                className={`rounded-full px-3 py-1.5 flex items-center gap-1 transition ${view === 'super-admin' ? 'bg-[#9b714f] text-white shadow-sm' : 'text-[#9b714f] hover:bg-[#9b714f]/10'}`}
+              >
+                <ShieldCheck size={14} /> Platform SaaS
+              </button>
+            </div>
+
+            {/* QR Code Action Button */}
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#6d786f]">
+              <button
+                onClick={() => setShowQrModal(true)}
+                className="flex items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white px-3 py-1.5 hover:border-[#9eb0a4] transition"
+              >
+                <QrCode size={14} /> Room QR
+              </button>
             </div>
           </div>
-
-          {/* Role Navigation Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white/70 p-1 text-xs font-semibold">
-            <button
-              onClick={() => setView('guest')}
-              className={`rounded-full px-3.5 py-1.5 transition ${view === 'guest' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
-            >
-              Guest View
-            </button>
-            <button
-              onClick={() => setView('kitchen')}
-              className={`rounded-full px-3.5 py-1.5 transition ${view === 'kitchen' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
-            >
-              Kitchen Desk
-            </button>
-            <button
-              onClick={() => setView('menu')}
-              className={`rounded-full px-3.5 py-1.5 transition ${view === 'menu' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
-            >
-              Menu Studio
-            </button>
-            <button
-              onClick={() => setView('qr')}
-              className={`rounded-full px-3.5 py-1.5 transition ${view === 'qr' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
-            >
-              QR Codes
-            </button>
-            <button
-              onClick={() => setView('super-admin')}
-              className={`rounded-full px-3 py-1.5 flex items-center gap-1 transition ${view === 'super-admin' ? 'bg-[#9b714f] text-white shadow-sm' : 'text-[#9b714f] hover:bg-[#9b714f]/10'}`}
-            >
-              <ShieldCheck size={14} /> Platform SaaS
-            </button>
-          </div>
-
-          {/* QR Code Action Button */}
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#6d786f]">
-            <button
-              onClick={() => setShowQrModal(true)}
-              className="flex items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white px-3 py-1.5 hover:border-[#9eb0a4] transition"
-            >
-              <QrCode size={14} /> Room QR
-            </button>
-          </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* QR Code Quick Modal */}
       {showQrModal && (
@@ -193,56 +195,45 @@ export default function SplendoApp() {
         </div>
       )}
 
-      {/* Main View Router */}
+      {/* FRONT FACING GUEST VIEW */}
       {view === 'guest' && (
-        <section className="mx-auto max-w-[1320px] px-5 pb-20 lg:px-10">
-          <div className="grid items-center gap-10 py-10 lg:grid-cols-[1fr_1.2fr] lg:py-14">
-            <div>
-              <p className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">
-                <span className="h-px w-8 bg-[#9b714f]" /> Welcome to {activeHotel.name}
-              </p>
-              <h1 className="max-w-xl font-serif text-5xl leading-[0.98] tracking-[-0.04em] text-[#173f35] sm:text-6xl">
-                Good food,<br />
-                <em className="font-normal text-[#9b714f]">beautifully</em> served.
-              </h1>
-              <p className="mt-6 max-w-md text-base leading-7 text-[#6d786f]">
-                Explore our curated room service menu. Your order will be prepared by our chefs and delivered fresh to your room.
-              </p>
-            </div>
-
-            {/* Room Location Card */}
-            <div
-              className="relative overflow-hidden rounded-[28px] p-8 sm:p-10 text-white shadow-xl"
-              style={{ backgroundColor: activeHotel.primaryColor || '#173f35' }}
-            >
-              <div className="relative flex min-h-[220px] flex-col justify-between">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-80">Room Service Delivery</p>
-                    <p className="mt-2 font-serif text-3xl">{activeHotel.name}</p>
+        <section className="mx-auto max-w-3xl px-4 py-6 pb-28 sm:px-6">
+          {/* Room Service Delivery Card ONLY */}
+          <div
+            className="relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white shadow-xl"
+            style={{ backgroundColor: activeHotel.primaryColor || '#173f35' }}
+          >
+            <div className="relative flex flex-col justify-between gap-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 font-serif text-2xl font-bold">
+                    {activeHotel.logoText}
                   </div>
-                  <div className="rounded-full bg-white/20 p-3"><Utensils size={20} /></div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-85">Room Service Delivery</p>
+                    <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-tight">{activeHotel.name}</h1>
+                  </div>
                 </div>
-                <div className="mt-8 flex items-end justify-between border-t border-white/20 pt-4">
-                  <div>
-                    <p className="text-xs opacity-75">Delivering to</p>
-                    <p className="mt-1 text-xl font-semibold">Room {roomNumber} <span className="opacity-60">·</span> Guest</p>
-                  </div>
-                  <span className="rounded-full bg-white/20 px-4 py-2 text-xs font-bold">{activeHotel.currency} Currency</span>
+                <div className="rounded-full bg-white/20 p-2.5">
+                  <Utensils size={20} />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-white/20 pt-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider opacity-75">Delivering To</p>
+                  <p className="text-xl font-bold font-mono">Room {roomNumber}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider opacity-75">Service Hours</p>
+                  <p className="text-xs font-medium">{activeHotel.serviceHours}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Categories Selector */}
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Curated Selection</p>
-              <h2 className="mt-1 font-serif text-3xl text-[#173f35]">What are you in the mood for?</h2>
-            </div>
-          </div>
-
-          <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
+          {/* Category Filter Pills */}
+          <div className="my-6 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {['Popular', 'Breakfast', 'Mains', 'Desserts', 'Drinks'].map((cat) => (
               <button
                 key={cat}
@@ -258,51 +249,82 @@ export default function SplendoApp() {
             ))}
           </div>
 
-          {/* Items Grid */}
-          <div className="grid gap-5 md:grid-cols-3">
-            {visibleItems.map((item) => (
-              <article key={item.id} className="group overflow-hidden rounded-2xl border border-[#e1e5df] bg-white shadow-sm">
-                <div className="relative h-52 overflow-hidden bg-[#e5eee4]">
-                  <Image src={item.image} alt={item.name} fill className="object-cover transition duration-500 group-hover:scale-105" />
-                  <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#173f35]">
-                    <Star size={12} className="mr-1 inline fill-[#c99562] text-[#c99562]" /> {item.rating}
-                  </div>
-                  {!item.available && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">
-                      Out of Stock
-                    </div>
-                  )}
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-serif text-xl text-[#173f35]">{item.name}</h3>
-                      <p className="mt-2 text-xs leading-5 text-[#7a857c]">{item.description}</p>
-                    </div>
-                    <p className="text-lg font-bold font-mono text-[#9b714f]">
-                      {activeHotel.currencySymbol}{item.price}
-                    </p>
+          {/* 3-COLUMN ITEMS LIST: Image (Col 1) | Details & Price (Col 2) | Quantity [- count +] (Col 3) */}
+          <div className="space-y-3">
+            {visibleItems.map((item) => {
+              const qty = cart[item.id] || 0
+
+              return (
+                <article
+                  key={item.id}
+                  className="grid grid-cols-[80px_1fr_auto] sm:grid-cols-[96px_1fr_auto] items-center gap-3 sm:gap-4 rounded-2xl border border-[#e1e5df] bg-white p-3 sm:p-4 shadow-sm transition hover:border-[#b9cdbd]"
+                >
+                  {/* Column 1: Image of product */}
+                  <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-xl bg-[#e5eee4]">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      fill
+                      className="object-cover"
+                    />
+                    {!item.available && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                        Sold out
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between border-t border-[#edf0eb] pt-4">
-                    <span className="text-xs text-[#8b958d]">
-                      <Clock3 size={13} className="mr-1 inline" /> {item.time}
-                    </span>
-                    <button
-                      disabled={!item.available}
-                      onClick={() => addItem(item.id)}
-                      className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
-                        item.available
-                          ? 'bg-[#e5eee4] text-[#173f35] hover:bg-[#cfe0d0]'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <Plus size={14} /> Add to Order
-                    </button>
+                  {/* Column 2: Name of product, description & price */}
+                  <div className="min-w-0 pr-1">
+                    <h3 className="font-serif text-base sm:text-lg font-bold text-[#173f35] truncate">{item.name}</h3>
+                    <p className="mt-0.5 text-xs text-[#7a857c] line-clamp-2 leading-relaxed">{item.description}</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="font-mono text-sm font-bold text-[#9b714f]">
+                        {activeHotel.currencySymbol}{item.price}
+                      </span>
+                      <span className="text-[11px] text-[#8b958d]">
+                        <Clock3 size={12} className="mr-1 inline text-[#9b714f]" /> {item.time}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  {/* Column 3: Quantity [- and +] Controls */}
+                  <div className="flex items-center justify-end">
+                    {qty > 0 ? (
+                      <div className="flex items-center gap-2 rounded-full border border-[#173f35] bg-[#173f35]/5 p-1">
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#173f35] shadow-sm hover:bg-[#edf1eb]"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span className="w-4 text-center font-mono text-xs font-bold text-[#173f35]">{qty}</span>
+                        <button
+                          onClick={() => addItem(item.id)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#173f35] text-white shadow-sm hover:bg-[#235749]"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={!item.available}
+                        onClick={() => addItem(item.id)}
+                        className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold transition ${
+                          item.available
+                            ? 'bg-[#173f35] text-white hover:bg-[#235749] shadow-sm'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Plus size={14} /> Add
+                      </button>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
           </div>
 
           {/* Floating Cart Button */}
@@ -314,19 +336,19 @@ export default function SplendoApp() {
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c99562] text-xs font-bold">
                 {cartCount}
               </span>
-              <span className="font-semibold text-sm">View Room Service Order</span>
+              <span className="font-semibold text-sm">View Order</span>
               <span className="font-mono font-bold text-sm">{activeHotel.currencySymbol}{cartTotal}</span>
             </button>
           )}
 
-          {/* Cart Drawer */}
+          {/* Cart Checkout Drawer */}
           {showCart && (
             <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#102a23]/30 p-4 sm:items-center">
               <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
                 <div className="flex items-center justify-between border-b border-[#e6e9e4] pb-4">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b714f]">Room {roomNumber}</span>
-                    <h2 className="font-serif text-2xl text-[#173f35]">Your Order</h2>
+                    <h2 className="font-serif text-2xl text-[#173f35]">Your Room Service Order</h2>
                   </div>
                   <button onClick={() => setShowCart(false)} aria-label="Close order"><X size={18} /></button>
                 </div>
@@ -366,6 +388,17 @@ export default function SplendoApp() {
               </div>
             </div>
           )}
+
+          {/* Discreet Footer link to Staff Access */}
+          <footer className="mt-16 text-center border-t border-[#dfe4dc] pt-6 pb-12">
+            <p className="text-xs text-[#8a948c]">{activeHotel.name} · Room Service Portal</p>
+            <button
+              onClick={() => setView('kitchen')}
+              className="mt-2 text-[11px] font-semibold text-[#9b714f] hover:underline"
+            >
+              Staff & Hotel Admin Access ➔
+            </button>
+          </footer>
         </section>
       )}
 
