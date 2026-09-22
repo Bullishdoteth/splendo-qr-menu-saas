@@ -29,9 +29,10 @@ const INITIAL_HOTELS: Hotel[] = [
     menuItems: [
       { id: 'm-1', name: 'Jollof & Grilled Chicken', description: 'Smoky tomato rice, charred chicken, fried plantain, spicy relish', price: 12500, category: 'Popular', image: '/images/jollof-chicken.png', time: '20–25 min', rating: '4.9', available: true, dietary: ['Gluten-Free'] },
       { id: 'm-2', name: 'Avocado Toast', description: 'Artisanal sourdough, smashed avocado, poached organic egg, chili flakes', price: 8500, category: 'Breakfast', image: '/images/avocado-toast.png', time: '10–15 min', rating: '4.8', available: true, dietary: ['Vegetarian'] },
+      { id: 'm-6', name: 'Prime Ribeye Steak', description: 'Pan-seared 10oz ribeye, truffle herb butter, roasted garlic potato purée', price: 24000, category: 'Mains', image: '/images/ribeye-steak.png', time: '25–30 min', rating: '5.0', available: true, dietary: ['Gluten-Free'] },
       { id: 'm-3', name: 'Coconut Cake', description: 'Vanilla bean sponge, coconut cream frosting, toasted coconut flakes', price: 4500, category: 'Desserts', image: '/images/coconut-cake.png', time: '5–10 min', rating: '4.7', available: true, dietary: ['Vegetarian'] },
-      { id: 'm-4', name: 'Truffle Mushroom Omelette', description: 'Three fluffy eggs, wild forest mushrooms, black truffle oil, aged cheddar', price: 9500, category: 'Breakfast', image: '/images/avocado-toast.png', time: '12–15 min', rating: '4.9', available: true },
-      { id: 'm-5', name: 'Fresh Passionfruit Spritz', description: 'Sparkling mineral water, fresh passionfruit pulp, lime, mint leaves', price: 3500, category: 'Drinks', image: '/images/coconut-cake.png', time: '3–5 min', rating: '4.6', available: true, dietary: ['Vegan'] },
+      { id: 'm-4', name: 'Truffle Mushroom Omelette', description: 'Three fluffy eggs, wild forest mushrooms, black truffle oil, aged cheddar', price: 9500, category: 'Breakfast', image: '/images/truffle-omelette.png', time: '12–15 min', rating: '4.9', available: true },
+      { id: 'm-5', name: 'Fresh Passionfruit Spritz', description: 'Sparkling mineral water, fresh passionfruit pulp, lime, mint leaves', price: 3500, category: 'Drinks', image: '/images/passionfruit-spritz.png', time: '3–5 min', rating: '4.6', available: true, dietary: ['Vegan'] },
     ]
   },
   {
