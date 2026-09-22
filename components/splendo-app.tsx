@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { QRCodeSVG } from 'qrcode.react'
 import { Bell, ChevronDown, Clock3, Coffee, ConciergeBell, Copy, ExternalLink, LayoutDashboard, Minus, Plus, QrCode, Search, ShoppingBag, Star, Utensils, X } from 'lucide-react'
@@ -24,7 +24,7 @@ export default function SplendoApp() {
   const [showCart, setShowCart] = useState(false)
   const [showQr, setShowQr] = useState(false)
   const [roomNumber] = useState(() => typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('room') || '208' : '208')
-  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/?room=${roomNumber}` : `https://splendo-hotel.vercel.app/?room=${roomNumber}`
+  const menuUrl = typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1') ? `${window.location.origin}/?room=${roomNumber}` : `https://splendo-qr-menu-saas.vercel.app/?room=${roomNumber}`
 
   const addItem = (id: number) => setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }))
   const removeItem = (id: number) => setCart((current) => ({ ...current, [id]: Math.max((current[id] || 0) - 1, 0) }))
@@ -82,7 +82,14 @@ const roomCodes = [
 
 function RoomsManager() {
   const [selectedRoom, setSelectedRoom] = useState(roomCodes[2])
-  const [origin, setOrigin] = useState('https://splendo-hotel.vercel.app')
+  const [origin, setOrigin] = useState('https://splendo-qr-menu-saas.vercel.app')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+      setOrigin(window.location.origin)
+    }
+  }, [])
+
   const selectedUrl = `${origin}/?room=${selectedRoom.room.replace(/\D/g, '')}`
 
   return <section className="mx-auto max-w-[1420px] px-5 pb-16 pt-8 lg:px-10"><div className="flex flex-wrap items-start justify-between gap-5"><div><p className="text-sm text-[#8a948c]">Hotel access · Rooms</p><h1 className="mt-2 font-serif text-4xl text-[#173f35]">Room QR codes</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[#718078]">Generate a unique scan-to-order link for every room. Print the code on room cards so orders arrive with the correct room number.</p></div><button onClick={() => window.print()} className="flex items-center gap-2 rounded-full bg-[#173f35] px-5 py-3 text-sm font-semibold text-white"><QrCode size={16} /> Print selected code</button></div><div className="mt-9 grid gap-6 lg:grid-cols-[1.15fr_.85fr]"><div className="rounded-2xl border border-[#e1e5df] bg-white p-5"><div className="flex items-center justify-between"><div><h2 className="font-serif text-2xl text-[#173f35]">All rooms</h2><p className="mt-1 text-sm text-[#8a948c]">{roomCodes.length} unique guest access codes</p></div><span className="rounded-full bg-[#e5eee4] px-3 py-1 text-xs font-bold text-[#4d7b61]">Live links</span></div><div className="mt-5 flex flex-col gap-2">{roomCodes.map((room) => <button key={room.room} onClick={() => setSelectedRoom(room)} className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${selectedRoom.room === room.room ? 'border-[#9eb0a4] bg-[#f2f6f0]' : 'border-[#edf0eb] hover:bg-[#fafbf8]'}`}><div><p className="font-semibold text-[#173f35]">{room.room}</p><p className="mt-1 text-xs text-[#8a948c]">{room.guest} · {room.floor}</p></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${room.status === 'Active' ? 'bg-[#e5eee4] text-[#4d7b61]' : 'bg-[#f1ede4] text-[#9b714f]'}`}>{room.status}</span></button>)}</div></div><div className="rounded-2xl bg-[#e5eee4] p-7 text-center"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b714f]">Selected code</p><h2 className="mt-2 font-serif text-3xl text-[#173f35]">{selectedRoom.room}</h2><p className="mt-1 text-sm text-[#718078]">{selectedRoom.guest === 'Available' ? 'Ready for your next guest' : `Currently assigned to ${selectedRoom.guest}`}</p><div className="mx-auto mt-6 flex size-60 items-center justify-center rounded-2xl bg-white p-3 shadow-sm"><QRCodeSVG value={selectedUrl} size={205} bgColor="#ffffff" fgColor="#173f35" level="H" includeMargin /></div><p className="mt-4 break-all text-[11px] text-[#7d8980]">{selectedUrl}</p><div className="mt-5 flex gap-2"><button onClick={() => navigator.clipboard?.writeText(selectedUrl)} className="flex-1 rounded-full border border-[#b9cdbd] bg-white px-4 py-3 text-sm font-semibold text-[#173f35]">Copy link</button><a href={selectedUrl} target="_blank" rel="noreferrer" className="flex-1 rounded-full bg-[#173f35] px-4 py-3 text-sm font-semibold text-white">Test menu</a></div></div></div></section>
