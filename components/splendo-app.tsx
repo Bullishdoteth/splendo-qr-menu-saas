@@ -12,11 +12,11 @@ import { OrderTracker } from './order-tracker'
 import { Order } from '@/lib/types'
 import {
   Bell, ChevronDown, Clock3, ConciergeBell, Copy, ExternalLink,
-  Minus, Plus, QrCode, Search, ShieldCheck, ShoppingBag, Star, Utensils, X
+  Minus, Plus, QrCode, Search, Settings, ShieldCheck, ShoppingBag, Star, Utensils, X
 } from 'lucide-react'
 
 export default function SplendoApp() {
-  const { hotels, activeHotel, setActiveHotelId, addOrder } = useSaaS()
+  const { hotels, activeHotel, setActiveHotelId, addOrder, updateHotelSettings } = useSaaS()
 
   // Navigation views: guest | kitchen | menu | qr | super-admin
   const [view, setView] = useState<'guest' | 'kitchen' | 'menu' | 'qr' | 'super-admin'>('guest')
@@ -25,6 +25,24 @@ export default function SplendoApp() {
   const [cart, setCart] = useState<Record<string, number>>({})
   const [showCart, setShowCart] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+
+  // Hotel Settings Form State
+  const [hotelName, setHotelName] = useState(activeHotel.name)
+  const [hotelTagline, setHotelTagline] = useState(activeHotel.tagline)
+  const [currencySymbol, setCurrencySymbol] = useState(activeHotel.currencySymbol)
+  const [currencyCode, setCurrencyCode] = useState(activeHotel.currency)
+  const [primaryColor, setPrimaryColor] = useState(activeHotel.primaryColor)
+  const [serviceHours, setServiceHours] = useState(activeHotel.serviceHours)
+
+  useEffect(() => {
+    setHotelName(activeHotel.name)
+    setHotelTagline(activeHotel.tagline)
+    setCurrencySymbol(activeHotel.currencySymbol)
+    setCurrencyCode(activeHotel.currency)
+    setPrimaryColor(activeHotel.primaryColor)
+    setServiceHours(activeHotel.serviceHours)
+  }, [activeHotel])
 
   // Tracking Modal State
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null)
@@ -117,7 +135,7 @@ export default function SplendoApp() {
             <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-[#dfe4dc] bg-white/70 p-1 text-xs font-semibold">
               <button
                 onClick={() => setView('guest')}
-                className={`rounded-full px-3.5 py-1.5 transition ${view === 'guest' ? 'bg-[#173f35] text-white shadow-sm' : 'text-[#6d786f] hover:text-[#173f35]'}`}
+                className="rounded-full px-3.5 py-1.5 transition text-[#6d786f] hover:text-[#173f35]"
               >
                 Guest View ➔
               </button>
@@ -211,9 +229,6 @@ export default function SplendoApp() {
             <div className="relative flex flex-col justify-between gap-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 font-serif text-2xl font-bold">
-                    {activeHotel.logoText}
-                  </div>
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-85">Room Service Delivery</p>
                     <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-tight">{activeHotel.name}</h1>
@@ -315,7 +330,7 @@ export default function SplendoApp() {
                       <p className="mt-0.5 text-xs text-[#7a857c] line-clamp-2 leading-relaxed">{item.description}</p>
                       <div className="mt-2 flex items-center gap-3">
                         <span className="font-mono text-sm font-bold text-[#9b714f]">
-                          {activeHotel.currencySymbol}{item.price}
+                          {activeHotel.currencySymbol}{item.price.toLocaleString()}
                         </span>
                         <span className="text-[11px] text-[#8b958d]">
                           <Clock3 size={12} className="mr-1 inline text-[#9b714f]" /> {item.time}
@@ -373,7 +388,7 @@ export default function SplendoApp() {
                 {cartCount}
               </span>
               <span className="font-semibold text-sm">View Order</span>
-              <span className="font-mono font-bold text-sm">{activeHotel.currencySymbol}{cartTotal}</span>
+              <span className="font-mono font-bold text-sm">{activeHotel.currencySymbol}{cartTotal.toLocaleString()}</span>
             </button>
           )}
 
@@ -394,7 +409,7 @@ export default function SplendoApp() {
                     <div key={item.id} className="flex items-center justify-between border-b border-[#edf0eb] pb-3">
                       <div>
                         <p className="font-semibold text-sm text-[#173f35]">{item.name}</p>
-                        <p className="text-xs text-[#8a948c]">{activeHotel.currencySymbol}{item.price} each</p>
+                        <p className="text-xs text-[#8a948c]">{activeHotel.currencySymbol}{item.price.toLocaleString()} each</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <button onClick={() => removeItem(item.id)} className="rounded-full bg-[#edf1eb] p-1.5 text-[#173f35]">
@@ -412,7 +427,7 @@ export default function SplendoApp() {
                 <div className="mt-6 border-t border-[#e6e9e4] pt-4">
                   <div className="flex justify-between text-base font-bold text-[#173f35]">
                     <span>Total Amount:</span>
-                    <span className="font-mono text-lg">{activeHotel.currencySymbol}{cartTotal}</span>
+                    <span className="font-mono text-lg">{activeHotel.currencySymbol}{cartTotal.toLocaleString()}</span>
                   </div>
                   <button
                     onClick={handlePlaceOrder}
