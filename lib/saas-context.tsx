@@ -7,10 +7,10 @@ import { playOrderChime } from './sound-utils'
 const INITIAL_HOTELS: Hotel[] = [
   {
     id: 'hotel-1',
-    slug: 'garden-terrace',
-    name: 'The Garden Terrace',
-    tagline: 'Good food, beautifully served.',
-    logoText: 'G',
+    slug: 'splendo-hotel',
+    name: 'Splendo Hotel & Suites',
+    tagline: 'Luxury Room Service & Dining.',
+    logoText: 'S',
     primaryColor: '#173f35',
     accentColor: '#9b714f',
     currency: 'USD',

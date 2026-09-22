@@ -21,6 +21,7 @@ export default function SplendoApp() {
   // Navigation views: guest | kitchen | menu | qr | super-admin
   const [view, setView] = useState<'guest' | 'kitchen' | 'menu' | 'qr' | 'super-admin'>('guest')
   const [category, setCategory] = useState('Popular')
+  const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState<Record<string, number>>({})
   const [showCart, setShowCart] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
@@ -45,9 +46,13 @@ export default function SplendoApp() {
   const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0)
   const cartTotal = menuItems.reduce((sum, item) => sum + item.price * (cart[item.id] || 0), 0)
 
-  const visibleItems = category === 'Popular'
-    ? menuItems
-    : menuItems.filter((item) => item.category === category)
+  const visibleItems = menuItems.filter((item) => {
+    const matchesCategory = category === 'Popular' || item.category === category
+    const matchesSearch = !searchQuery.trim() ||
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
 
   const handlePlaceOrder = () => {
     const orderItems = menuItems
@@ -232,8 +237,31 @@ export default function SplendoApp() {
             </div>
           </div>
 
+          {/* Search Input Bar */}
+          <div className="mt-6 mb-4">
+            <div className="flex items-center rounded-2xl border border-[#dfe4dc] bg-white px-4 py-3 shadow-sm transition focus-within:border-[#173f35] focus-within:ring-2 focus-within:ring-[#173f35]/10">
+              <Search size={18} className="text-[#8a948c] mr-3 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search menu items..."
+                className="w-full text-sm bg-transparent text-[#173f35] placeholder-[#8a948c] focus:outline-none font-medium"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="rounded-full p-1 text-[#8a948c] hover:bg-[#f0f4ef] hover:text-[#173f35]"
+                  aria-label="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Category Filter Pills */}
-          <div className="my-6 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div className="mb-6 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {['Popular', 'Breakfast', 'Mains', 'Desserts', 'Drinks'].map((cat) => (
               <button
                 key={cat}
@@ -250,82 +278,90 @@ export default function SplendoApp() {
           </div>
 
           {/* 3-COLUMN ITEMS LIST: Image (Col 1) | Details & Price (Col 2) | Quantity [- count +] (Col 3) */}
-          <div className="space-y-3">
-            {visibleItems.map((item) => {
-              const qty = cart[item.id] || 0
+          {visibleItems.length === 0 ? (
+            <div className="mt-8 rounded-2xl border border-dashed border-[#dfe4dc] bg-white p-8 text-center">
+              <Search className="mx-auto text-[#8a948c]" size={28} />
+              <p className="mt-2 text-sm font-bold text-[#173f35]">No menu items found</p>
+              <p className="mt-1 text-xs text-[#8a948c]">Try searching for a different dish or clear your search.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visibleItems.map((item) => {
+                const qty = cart[item.id] || 0
 
-              return (
-                <article
-                  key={item.id}
-                  className="grid grid-cols-[80px_1fr_auto] sm:grid-cols-[96px_1fr_auto] items-center gap-3 sm:gap-4 rounded-2xl border border-[#e1e5df] bg-white p-3 sm:p-4 shadow-sm transition hover:border-[#b9cdbd]"
-                >
-                  {/* Column 1: Image of product */}
-                  <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-xl bg-[#e5eee4]">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                    {!item.available && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-bold text-white uppercase">
-                        Sold out
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Column 2: Name of product, description & price */}
-                  <div className="min-w-0 pr-1">
-                    <h3 className="font-serif text-base sm:text-lg font-bold text-[#173f35] truncate">{item.name}</h3>
-                    <p className="mt-0.5 text-xs text-[#7a857c] line-clamp-2 leading-relaxed">{item.description}</p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <span className="font-mono text-sm font-bold text-[#9b714f]">
-                        {activeHotel.currencySymbol}{item.price}
-                      </span>
-                      <span className="text-[11px] text-[#8b958d]">
-                        <Clock3 size={12} className="mr-1 inline text-[#9b714f]" /> {item.time}
-                      </span>
+                return (
+                  <article
+                    key={item.id}
+                    className="grid grid-cols-[80px_1fr_auto] sm:grid-cols-[96px_1fr_auto] items-center gap-3 sm:gap-4 rounded-2xl border border-[#e1e5df] bg-white p-3 sm:p-4 shadow-sm transition hover:border-[#b9cdbd]"
+                  >
+                    {/* Column 1: Image of product */}
+                    <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-xl bg-[#e5eee4]">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                      />
+                      {!item.available && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                          Sold out
+                        </div>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Column 3: Quantity [- and +] Controls */}
-                  <div className="flex items-center justify-end">
-                    {qty > 0 ? (
-                      <div className="flex items-center gap-2 rounded-full border border-[#173f35] bg-[#173f35]/5 p-1">
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#173f35] shadow-sm hover:bg-[#edf1eb]"
-                          aria-label="Decrease quantity"
-                        >
-                          <Minus size={13} />
-                        </button>
-                        <span className="w-4 text-center font-mono text-xs font-bold text-[#173f35]">{qty}</span>
-                        <button
-                          onClick={() => addItem(item.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#173f35] text-white shadow-sm hover:bg-[#235749]"
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={13} />
-                        </button>
+                    {/* Column 2: Name of product, description & price */}
+                    <div className="min-w-0 pr-1">
+                      <h3 className="font-serif text-base sm:text-lg font-bold text-[#173f35] truncate">{item.name}</h3>
+                      <p className="mt-0.5 text-xs text-[#7a857c] line-clamp-2 leading-relaxed">{item.description}</p>
+                      <div className="mt-2 flex items-center gap-3">
+                        <span className="font-mono text-sm font-bold text-[#9b714f]">
+                          {activeHotel.currencySymbol}{item.price}
+                        </span>
+                        <span className="text-[11px] text-[#8b958d]">
+                          <Clock3 size={12} className="mr-1 inline text-[#9b714f]" /> {item.time}
+                        </span>
                       </div>
-                    ) : (
-                      <button
-                        disabled={!item.available}
-                        onClick={() => addItem(item.id)}
-                        className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold transition ${
-                          item.available
-                            ? 'bg-[#173f35] text-white hover:bg-[#235749] shadow-sm'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <Plus size={14} /> Add
-                      </button>
-                    )}
-                  </div>
-                </article>
-              )
-            })}
-          </div>
+                    </div>
+
+                    {/* Column 3: Quantity [- and +] Controls */}
+                    <div className="flex items-center justify-end">
+                      {qty > 0 ? (
+                        <div className="flex items-center gap-2 rounded-full border border-[#173f35] bg-[#173f35]/5 p-1">
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#173f35] shadow-sm hover:bg-[#edf1eb]"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span className="w-4 text-center font-mono text-xs font-bold text-[#173f35]">{qty}</span>
+                          <button
+                            onClick={() => addItem(item.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-[#173f35] text-white shadow-sm hover:bg-[#235749]"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={!item.available}
+                          onClick={() => addItem(item.id)}
+                          className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold transition ${
+                            item.available
+                              ? 'bg-[#173f35] text-white hover:bg-[#235749] shadow-sm'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          <Plus size={14} /> Add
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
 
           {/* Floating Cart Button */}
           {cartCount > 0 && (
